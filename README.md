@@ -1,6 +1,6 @@
 
 
-# Project Almanac-FRYE: Enterprise Continuous Pricing Engine ✈️
+# ✈️ Project Almanac-FRYE: Enterprise Continuous Pricing Engine 
 
 *Flight Revenue Yield Engine - The "Amadeus & other Legacy GDS  Killer" — Moving airlines from static legacy fare buckets to AI-driven Enterprise grade continuous dynamic pricing.*
 
