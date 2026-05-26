@@ -1,6 +1,6 @@
 
 
-# ✈️ Project Almanac-FRYE: Enterprise Continuous Pricing Engine 
+# ✈️ Project Almanac-FRYE: Enterprise Continuous Pricing Engine
 
 *Flight Revenue Yield Engine - The "Amadeus & other Legacy GDS  Killer" — Moving airlines from static legacy fare buckets to AI-driven Enterprise grade continuous dynamic pricing.*
 
@@ -22,6 +22,7 @@ This legacy model creates three massive financial leaks for airlines:
 1.  **Margin Leakage (Leaving Money on the Table):** If a customer is willing to pay $450, but the nearest open bucket dictated by the core provider is $400, the airline loses $50 of pure margin.
 2.  **Lost Bookings:** If a competitor prices their flight at $390, and the airline's bucket is rigidly stuck at $400 due to legacy system limitations, the airline loses the entire sale.
 3.  **The Late Bucket Reset Latency:** Legacy RM systems (such as those from Amadeus, Sabre, or Travelport) typically run batch updates overnight or at fixed multi-hour intervals. If a market shift occurs at 9:00 AM (e.g., a competitor drops a price or a sudden surge in demand happens), these systems keep the airline locked in old price buckets for hours. This delay results in either hours of uncompetitive pricing or severe underpricing before the system finally triggers a reset.
+
 ---
 
 ## 2. What the Solution is
@@ -31,6 +32,7 @@ This legacy model creates three massive financial leaks for airlines:
 Instead of relying on legacy providers like Amadeus, Sabre, or Travelport for both pricing and distribution, the airline uses these systems *strictly as a dumb pipe* for distribution. The Almanac-FRYE engine runs internally on AWS SageMaker, bypassing the 26-letter bucket system entirely to calculate the exact, continuous mathematical optimum price for every single transaction (e.g., $412.36 instead of $400.00).
 
 **Instantaneous Micro-Pricing Elimination of Latency:** Almanac-FRYE operates in continuous time, generating real-time price updates on-the-fly for every individual search request. By eliminating the multi-hour or overnight batch processing wait times characteristic of legacy systems, the airline avoids stale inventory positioning and captures transient windows of maximum consumer willingness-to-pay instantly.
+
 ---
 
 ## 3. How It Works
