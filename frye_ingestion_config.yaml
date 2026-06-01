@@ -1,0 +1,43 @@
+# ==========================================
+# FRYE DATA LAKE INGESTION CONFIGURATION
+# ==========================================
+pipeline_meta:
+  environment: "dynamic" 
+  version: "2.0.0"
+
+# --- BILLING & FINANCIAL CONTROLS ---
+billing_strategy:
+  execution_mode: "free_tier_only" 
+  free_tier_warning_threshold: 0.95
+  registry_file: "/tmp/frye_api_usage_registry.json" # Moved to /tmp/ for AWS Lambda compatibility
+
+gds_pricing_api:
+  active_profile: "self_service"
+  profiles:
+    self_service:
+      base_url: "https://test.api.amadeus.com/v2/shopping/flight-offers"
+      auth_url: "https://test.api.amadeus.com/v1/security/oauth2/token"
+      free_tier_monthly_requests: 2000
+      rps_limits: { test_environment: 2, enterprise_production: 10 }
+
+macro_economic_sources:
+  jet_fuel_index:
+    base_url: "https://api.eia.gov/v2/petroleum/pri/spt/data"
+    free_tier_monthly_requests: 5000
+    rps_limits: { test_environment: 1, enterprise_production: 5 }
+  currency_exchange:
+    base_url: "https://v6.exchangerate-api.com/v6/"
+    free_tier_monthly_requests: 1500
+    rps_limits: { test_environment: 2, enterprise_production: 15 }
+
+seasonality_api:
+  base_url: "https://holidays.abstractapi.com/v1/"
+  free_tier_monthly_requests: 1000
+  rps_limits: { test_environment: 1, enterprise_production: 5 }
+
+aviation_intelligence:
+  base_url: "http://api.aviationstack.com/v1/flights" # Strict HTTP for free tier
+  free_tier_monthly_requests: 100 
+  rps_limits: { test_environment: 1, enterprise_production: 10 }
+
+
