@@ -9,7 +9,7 @@ This guide outlines how to deploy Project Almanac-FRYE as a highly elastic, serv
 
 Where does each script run in the AWS ecosystem?
 
-* **`frye_ingestion_config.yaml`**: Uploaded directly inside **AWS Lambda** alongside script 01.
+* **`frye_ingestion_config.yaml` & `active_routes.csv`**: Uploaded directly inside **AWS Lambda** alongside script 01. The CSV is optional but recommended for dynamically managing flight targets without altering Python code.
 * **`01_Data_Ingestion_Pipeline.py`**: Runs in **AWS Lambda** (Triggered by EventBridge).
 * **`02_Feature_Engineering.py`**: Runs **Locally** (or via AWS Glue/SageMaker Processing Jobs for massive scale).
 * **`03_Distributed_Training.py`**: Runs in **AWS SageMaker** (NVIDIA GPU Cluster).
@@ -37,7 +37,9 @@ Instead of local `.env` files, production deployments use **AWS Secrets Manager*
 Deploy script `01_Data_Ingestion_Pipeline.py` to automate real-world data collection.
 
 1. Create an **AWS Lambda** function.
-2. **Uploading the Code:** You must upload BOTH `01_Data_Ingestion_Pipeline.py` and `frye_ingestion_config.yaml` to the root directory of your Lambda function. You can do this by zipping them together or copying the YAML text directly into a new file in the Lambda console editor.
+2. **Uploading the Code:** You must upload your core ingestion files to the root directory of your Lambda function. You can do this by zipping them together or editing them directly in the Lambda console.
+   * Required: `01_Data_Ingestion_Pipeline.py` and `frye_ingestion_config.yaml`.
+   * Optional: `active_routes.csv`. If included, the Lambda will automatically harvest your custom list of routes; if omitted, it safely falls back to a default trio of routes.
 3. **Handling Dependencies (AWS Lambda Layers):** Lambda requires external packages. Instead of uploading massive `.zip` files:
    * **The Heavy Math:** Go to your Lambda function -> **Layers** -> **Add a layer**. Select **AWS layers** and choose **AWSSDKPandas-Python310**. (This provides `pandas`, `numpy`, and `pyarrow`).
    * **The Network/Parsing/Cache:** You must create a custom layer for `requests`, `pyyaml`, `python-dotenv`, and `redis`. On your Mac, run:
