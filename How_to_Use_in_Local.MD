@@ -13,6 +13,7 @@ Ensure your working directory contains the following core files:
 ```text
 ├── .env                              # Local API credentials (Do not commit)
 ├── frye_ingestion_config.yaml        # Pipeline parameters & API rate limits
+├── active_routes.csv                 # (Optional) Dynamic route targets list
 ├── 01_Data_Ingestion_Pipeline.py     # Harvester (Hits Amadeus, AviationStack, EIA)
 ├── 02_Feature_Engineering.py         # Data Normalization (Scikit-learn, Parquet)
 ├── 03_Distributed_Training.py        # PyTorch Time-Series Transformer Engine
@@ -47,6 +48,8 @@ EXCHANGERATE_API_KEY=your_key_here
 
 
 ### Step 2: Data Ingestion & Feature Engineering
+
+> **🎯 Targeting Specific Routes (Optional):** > By default, the ingestion script harvests data for `JFK-LHR`, `BLR-DEL`, and `DXB-BOM`. To dynamically control which flight routes are harvested without altering the Python code, simply create an `active_routes.csv` file in this directory. Ensure it has a column header named `route_id` and list your target routes below it.
 
 Generate the local Parquet data lake and Machine Learning artifacts (scalers/encoders). You should run the ingestion script periodically to build up at least 14 days of real-world data.
 
