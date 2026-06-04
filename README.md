@@ -4,6 +4,8 @@
 
 *Flight Revenue Yield Engine - The "Amadeus & other Legacy GDS  Killer" — Moving airlines from static legacy fare buckets to AI-driven Enterprise grade continuous dynamic pricing.*
 
+![Almanac FRYE Logo](images/FRYE_Logo.png)
+
 ---
 
 ## 1. Introduction, Pricing Models of Amadeus, & The Problem Statement
@@ -29,6 +31,8 @@ This legacy model creates three massive financial leaks for airlines:
 
 **Almanac-FRYE** is a Continuous Dynamic Pricing Engine powered by a **Time-Series Transformer Neural Network**.
 
+![Price Prediction Graph](images/Price_Prediction_Graph.jpg)
+
 Instead of relying on legacy providers like Amadeus, Sabre, or Travelport for both pricing and distribution, the airline uses these systems *strictly as a dumb pipe* for distribution. The Almanac-FRYE engine runs internally on AWS SageMaker, bypassing the 26-letter bucket system entirely to calculate the exact, continuous mathematical optimum price for every single transaction (e.g., $412.36 instead of $400.00).
 
 **Instantaneous Micro-Pricing Elimination of Latency:** Almanac-FRYE operates in continuous time, generating real-time price updates on-the-fly for every individual search request. By eliminating the multi-hour or overnight batch processing wait times characteristic of legacy systems, the airline avoids stale inventory positioning and captures transient windows of maximum consumer willingness-to-pay instantly.
@@ -48,6 +52,8 @@ The architecture transitions from simple batch-processing to a distributed Machi
 * **The "Brain" (Time-Series Transformer):** The engine processes a rolling window of the previous 99 searches to predict the optimal price for the 100th search in real-time, utilizing Hugging Face's `TimeSeriesTransformerModel`.
 * **Route-Sharded Distributed Training:** Deployed on AWS SageMaker `ml.g4dn.xlarge` instances, individual models are trained per route (e.g., JFK-LHR vs. BLR-DEL) to capture specific price elasticities.
 * **Live Inference:** A Multi-Model Endpoint (MME) un-squashes the AI's prediction back into nominal currency and pushes the final absolute price to the OTA via the distribution networks in milliseconds.
+
+![Cloud Architecture](images/Almanac-FRYE-Architecture.jpg)
 
 ---
 
