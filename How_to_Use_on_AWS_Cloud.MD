@@ -16,6 +16,8 @@ Where does each script run in the AWS ecosystem?
 * **`04_Live_Endpoint.py`**: Runs in **AWS Fargate, App Runner, ECS, or EC2** (Stateless API Container connected to ElastiCache).
 * **`05_SageMaker_Launcher.py`**: Runs in **AWS Lambda** or **Locally** (Orchestrates the SageMaker Cluster).
 
+![Cloud Architecture](images/Almanac-FRYE-Architecture.jpg)
+
 ---
 
 ## ☁️ Step-by-Step Deployment
@@ -57,6 +59,8 @@ Deploy script `01_Data_Ingestion_Pipeline.py` to automate real-world data collec
      * `EVENTBRIDGE_RULE_NAME` = `frye-ingestion-cron`
 5. Attach an **EventBridge Trigger** (Cron expression: `rate(6 hours)` or `0 */6 * * ? *`) to run it automatically 4x a day.
 
+![Lambda Deployment](images/AWS_Cloud/01_Lambda_Deployment.png)
+
 ### Step 3: Cloud Feature Engineering (S3 Integration)
 
 After Lambda has collected at least 14 days of real-world data in S3, run script `02_Feature_Engineering.py` to process it.
@@ -64,6 +68,8 @@ After Lambda has collected at least 14 days of real-world data in S3, run script
 * **Where to run:** Because this script requires loading the entire historical dataset into RAM to calculate scaler bounds, run it **locally on your machine** (or deploy it to a high-memory AWS Glue job).
 * Ensure `UPLOAD_TO_S3 = True` inside `02_Feature_Engineering.py`.
 * Run the script. It will read raw Parquet data from S3, normalize it, and push the ML artifacts (`.pkl` scalers) and `frye_scaled_training_data.parquet` back to your S3 bucket.
+
+![S3 Files stored](images/AWS_Cloud/01b_S3_Files_stored.png)
 
 ### Step 4: Automated GPU Training (AWS SageMaker)
 
