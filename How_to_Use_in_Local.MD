@@ -68,6 +68,10 @@ To build a robust dataset automatically, set up a cron job to run the pipeline 4
 
 > **Alternative (Manual Runs):** If you prefer not to configure a cron job, you can manually run `python3 01_Data_Ingestion_Pipeline.py` a few times a day for at least 14 days to capture sufficient market volatility.
 
+![FileList and DataPull toParquet](images/Local/01a_FileList_and_DataPull_toParquet.png)
+
+![Parquet DataStruct](images/Local/01b_Parquet_DataStruct.png)
+
 #### Feature Engineering
 
 After you have collected sufficient data, run the feature engineering script to normalize the data and generate ML artifacts.
@@ -79,6 +83,9 @@ python3 02_Feature_Engineering.py
 
 > **Note:** Ensure `UPLOAD_TO_S3 = False` inside `02_Feature_Engineering.py` when running purely locally.
 
+![Feature EnggExec](images/Local/02a_Feature_EnggExec.png)
+![Trained Scaled_ParquetDS](images/Local/02b_Trained_Scaled_ParquetDS.png)
+
 ### Step 3: Model Training
 
 Train the Time-Series Transformer on your local machine.
@@ -89,6 +96,8 @@ python3 03_Distributed_Training.py
 ```
 
 > **Apple Silicon (M-Series) Note:** The script features a dynamic hardware probe. It will automatically bypass the MPS (Metal) backend and route to your CPU. This is an intentional safety feature to prevent PyTorch from crashing on currently unsupported temporal indexing operations in Apple Metal.
+
+![Model Training](images/Local/03_Model_Training.png)
 
 ### Step 4: Launch the Live Inference API
 
@@ -154,6 +163,10 @@ curl -X 'POST' \
 }'
 
 ```
+
+![Server - PricePrediction LiveEndpoint](images/Local/04a_Server_LiveEndpoint_for_PricePrediction.png)
+
+![Client - PricePrediction LiveEndpoint](images/Local/04b_Client_LiveEndpoint_for_PricePrediction.png)
 
 ---
 
