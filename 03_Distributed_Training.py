@@ -4,8 +4,9 @@ import torch
 import torch.nn as nn
 import pandas as pd
 import numpy as np
+import pyarrow.dataset as ds
 from torch.optim import AdamW
-from torch.utils.data import DataLoader, TensorDataset
+from torch.utils.data import DataLoader, IterableDataset
 from transformers import TimeSeriesTransformerConfig, TimeSeriesTransformerModel
 from accelerate import Accelerator
 
@@ -49,32 +50,43 @@ class FRYEContinuousPricingEngine(nn.Module):
         raw_output = self.price_prediction_head(outputs.encoder_last_hidden_state[:, -1, :])
         return self.activation(raw_output)
 
-def build_training_sequences():
-    data_path = os.path.join(PROCESSED_DATA_DIR, 'frye_scaled_training_data.parquet')
-    df = pd.read_parquet(data_path)
-    X, Y = [], []
+class StreamingRouteDataset(IterableDataset):
+    """
+    Lazy Streaming Layer. Streams data directly from S3 via SageMaker FastFile mount.
+    Uses PyArrow to read record batches, maintaining near-zero RAM footprint.
+    """
+    def __init__(self, data_dir):
+        super().__init__()
+        self.data_dir = data_dir
 
-    # Requires REAL data history >= 8 rows per route
-    for route_val in df['route_id'].unique():
-        route_df = df[df['route_id'] == route_val].reset_index(drop=True)
-        if len(route_df) < HISTORY_LENGTH + 1:
-            continue # Skips route if insufficient real data exists
+    def __iter__(self):
+        try:
+            dataset = ds.dataset(self.data_dir, format="parquet")
+        except Exception as e:
+            print(f"⚠️ Warning: Could not initialize parquet dataset at {self.data_dir}: {e}")
+            return
 
-        feature_matrix = route_df[FEATURES].values
-        target_array = route_df[TARGET].values
+        route_buffers = {}
+        # Stream from disk/S3 in tiny micro-batches
+        for batch in dataset.to_batches():
+            df = batch.to_pandas()
+            for _, row in df.iterrows():
+                route = row['route_id']
+                if route not in route_buffers:
+                    route_buffers[route] = []
 
-        for i in range(len(route_df) - HISTORY_LENGTH):
-            X.append(feature_matrix[i : i + HISTORY_LENGTH])
-            Y.append([target_array[i + HISTORY_LENGTH]])
+                feat = [row[f] for f in FEATURES]
+                targ = row[TARGET]
+                route_buffers[route].append((feat, targ))
 
-    # --- NEW SAFEGUARD ---
-    if len(X) == 0:
-        raise RuntimeError(f"🚨 Not enough data! The model requires at least {HISTORY_LENGTH + 1} historical records for a single route to build one training sequence. Run your ingestion pipeline a few more times.")
+                # Yield sequence if buffer hits required length
+                if len(route_buffers[route]) == HISTORY_LENGTH + 1:
+                    X = [x[0] for x in route_buffers[route][:-1]]
+                    Y = [route_buffers[route][-1][1]]
+                    yield torch.tensor(X, dtype=torch.float32), torch.tensor(Y, dtype=torch.float32)
 
-    X_tensor = torch.tensor(np.array(X), dtype=torch.float32)
-    Y_tensor = torch.tensor(np.array(Y), dtype=torch.float32)
-    return DataLoader(TensorDataset(X_tensor, Y_tensor), batch_size=16, shuffle=True)
-
+                    # Pop oldest entry to advance the rolling window
+                    route_buffers[route].pop(0)
 
 def train_engine():
     safe_device = probe_hardware_environment()
@@ -85,7 +97,10 @@ def train_engine():
     optimizer = AdamW(model.parameters(), lr=0.001)
     loss_function = nn.MSELoss()
 
-    train_dataloader = build_training_sequences()
+    # Connect the Lazy Streamer (Notice shuffle=True is removed as IterableDatasets stream sequentially)
+    dataset = StreamingRouteDataset(PROCESSED_DATA_DIR)
+    train_dataloader = DataLoader(dataset, batch_size=16)
+
     model, optimizer, train_dataloader = accelerator.prepare(model, optimizer, train_dataloader)
 
     model.train()
@@ -104,4 +119,5 @@ def train_engine():
         torch.save(unwrapped.state_dict(), save_path)
         print(f"✅ Training Complete. Secured at: {save_path}")
 
-if __name__ == "__main__": train_engine()
+if __name__ == "__main__":
+    train_engine()
