@@ -85,15 +85,35 @@ By default, AWS Lambda does not have permission to turn off its own EventBridge 
 
 Your Lambda function is now fully authorized to automatically disable its own ingestion cron job after the 15-day lifecycle completes.
 
+![S3 Files stored](images/AWS_Cloud/01b_S3_Files_stored.png)
+
 ### Step 4: Cloud Feature Engineering (S3 Integration)
 
 After Lambda has collected at least 14 days of real-world data in S3, run script `02_Feature_Engineering.py` to process it.
 
 * **Where to run:** Because this script requires loading the entire historical dataset into RAM to calculate scaler bounds, run it **locally on your machine** (or deploy it to a high-memory AWS Glue job).
+
+![Glue Job Creation](images/AWS_Cloud/02a_Glue_Job_Creation.png)
+
 * Ensure `UPLOAD_TO_S3 = True` inside `02_Feature_Engineering.py`.
+
+![Glue Code](images/AWS_Cloud/02b_Glue_Code.png)
+
 * Run the script. It will read raw Parquet data from S3, normalize it, and push the ML artifacts (`.pkl` scalers) and `frye_scaled_training_data.parquet` back to your S3 bucket.
 
-![S3 Files stored](images/AWS_Cloud/01b_S3_Files_stored.png)
+![Glue IAM Role](images/AWS_Cloud/02c_Glue_IAM_Role.png)
+
+![Glue Config](images/AWS_Cloud/02d_Glue_Config.png)
+
+![Glue Job params](images/AWS_Cloud/02e_Glue_Job_params.png)
+
+![Glue JobExec running](images/AWS_Cloud/02f_Glue_JobExec_running.png)
+
+![Glue JobExec complete](images/AWS_Cloud/02g_Glue_JobExec_complete.png)
+
+![GlueJob CloudWatchLogs](images/AWS_Cloud/02h_GlueJob_CloudWatchLogs.png)
+
+![S3 Artifacts createdByGlueJob](images/AWS_Cloud/02i_S3_Artifacts_createdByGlueJob.png)
 
 ### Step 5: Automated GPU Training (AWS SageMaker)
 
@@ -102,9 +122,27 @@ Once the processed tensors are in S3, launch the cloud training cluster. You can
 python3 05_SageMaker_Launcher.py
 ```
 
+![SageMaker TrainingScript](images/AWS_Cloud/05a_SageMaker_TrainingScript.png)
+
+![Sagemaker TrainingJob](images/AWS_Cloud/05b_Sagemaker_TrainingJob.png)
+
+![SageMaker TrainingScript Completion](images/AWS_Cloud/05c_SageMaker_TrainingScript_Completion.png)
+
+![S3 Artifacts from SageMakerTraining](images/AWS_Cloud/05d_S3_Artifacts_from_SageMakerTraining.png)
+
 **The Cloud CI/CD Workflow:**
 
-1. Script `05_SageMaker_Launcher.py` tells AWS to provision an `ml.g4dn.xlarge` NVIDIA GPU instance.
+1. Script `05_SageMaker_Launcher.py` auto-selects the type of AWS SageMaker Instance, based on the size of the data-lake training data. E.g.:`ml.m5.large` for Small Training data (< 1GB) and `ml.g5.12xlarge` for Massive training data (150 GB+).
+
+| Instance | Data Tier | Data Size Boundary | Hardware / Compute | Use Case | Estimated Cost |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| `ml.m5.large` | 🟢 TINY | < 1 GB | CPU | Quick Pipeline & Code Testing | ~$0.11/hr |
+| `ml.c5.xlarge` | 🟡 SMALL | 1 GB - 5 GB | CPU Compute | Dev/Debug Only | ~$0.20/hr |
+| `ml.c5.2xlarge` | 🟠 MEDIUM | 5 GB - 10 GB | High RAM CPU | Slow for Transformers | ~$0.40/hr |
+| `ml.g4dn.xlarge` | 🔴 LARGE | 10 GB - 50 GB | NVIDIA T4 GPU | Baseline Streaming | ~$0.73/hr |
+| `ml.g5.2xlarge` | 🟣 VERY LARGE | 50 GB - 150 GB | NVIDIA A10G GPU | Fast Streaming | ~$1.51/hr |
+| `ml.g5.12xlarge` | ⚫ MASSIVE | 150 GB+ | 4x NVIDIA A10G GPUs | Distributed DDP | ~$7.09/hr |
+
 2. SageMaker pulls `03_Distributed_Training.py` and the S3 Parquet tensors and trains the PyTorch model.
 3. **Model Promotion:** Script `05_SageMaker_Launcher.py` automatically copies the finalized weights to a static S3 path (`model_output/latest_model.tar.gz`).
 
@@ -118,6 +156,10 @@ Deploy `04_Live_Endpoint.py` to a cloud server meant for continuous API hosting,
 * `REDIS_HOST=your-elasticache-endpoint.amazonaws.com`
 * `REDIS_PORT=6379`
 * **Stateless Boot:** On startup, FastAPI will automatically connect to S3, download the `latest_model.tar.gz` and the scalers, extract them, and load them into RAM. It will then connect to Redis to handle state.
+
+> *Note: Make sure that the AWS service running the 04_Live_Endpoint.py script, has the Read Access to S3 (E.g.: `AmazonS3ReadOnlyAccess` policy)
+
+![LiveEndpoint EC2Server](images/AWS_Cloud/04a_LiveEndpoint_EC2Server.png)
 
 **Testing the Cloud API:**
 Once deployed, send a request to your API's public IP or domain name.
@@ -172,6 +214,8 @@ curl -X 'POST' \
   ]
 }'
 ```
+
+![LiveEndpoint Client](images/AWS_Cloud/04b_LiveEndpoint_Client.png)
 
 ---
 
